@@ -47,7 +47,7 @@ int be_server(int port)
     }
 
     // Forcefully attaching socket to the port 8080
-    if (setsockopt(server_fd, IPPROTO_TCP, SO_REUSEADDR,
+    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR,
                    &opt, sizeof(opt)))
     {
         perror("setsockopt");
@@ -77,7 +77,6 @@ int be_server(int port)
     }
     int flags =1;
     int r = setsockopt(new_socket, IPPROTO_TCP, TCP_NODELAY, (void *)&flags, sizeof(flags));
-    std::cout << "setsockopt server returned " << r << '\n';
 
     std::thread t(be_receiver, new_socket);
     be_sender(new_socket);
@@ -114,7 +113,6 @@ int be_client(std::string const & address, int port)
 
     int flags =1;
     int r = setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, (void *)&flags, sizeof(flags));
-    std::cout << "setsockopt returned " << r << '\n';
 
     std::thread t(be_receiver, sock);
     be_sender(sock);
@@ -124,14 +122,11 @@ int be_client(std::string const & address, int port)
 
 void be_sender(int socket)
 {
-    int flags =1;
-    int r = setsockopt(socket, IPPROTO_TCP, TCP_NODELAY, (void *)&flags, sizeof(flags));
-    std::cout << "setsockopt returned " << r << '\n';
-
     while(true)
     {
         std::string msg {};
         std::getline(std::cin, msg);
+        //std::cout <<"got message to send\n";
         if(msg == END_CONNECTION)
         {
             send(socket, END_CONNECTION.c_str(), END_CONNECTION.length(), 0);
@@ -139,26 +134,24 @@ void be_sender(int socket)
         }
         if(msg.empty()) continue;
         send(socket, msg.c_str(), msg.length(), 0);
+        //std::cout << ": sent message\n";
     }
 }
 
 void be_receiver(int socket)
 {
-    int flags =1;
-    int r = setsockopt(socket, IPPROTO_TCP, TCP_NODELAY, (void *)&flags, sizeof(flags));
-    std::cout << "setsockopt returned " << r << '\n';
-
     while(true)
     {
         char msg [buffer_size];
         int stored = 0;
         stored = read(socket, msg, buffer_size-1);
+        //std::cout << "====" <<stored<< "\n\n";
         msg[stored]='\0';
         if(std::string(msg) == END_CONNECTION)
         {
             return;
         }
         if(stored == 0) continue;
-        std::cout << "msg received: " << msg << std::endl;
+        std::cout << "msg received from "<< msg << std::endl;
     }
 }
